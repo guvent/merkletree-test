@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"
+        integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="
+    https://cdn.jsdelivr.net/npm/buffer@6.0.3/index.min.js
+    "></script>
+    <script>
+        class MerkleTree {
+            constructor(leaves, concat) {
+                this.leaves = leaves;
+                this.concat = concat;
+
+                this.proofs = [leaves];
+                this.root = this.getRoot(leaves);
+            }
+
+            getRoot(leaves) {
+                const result = leaves
+                    .map((v, i, f) => {
+                        if (i % 2 === 1) return null;
+                        return [v, f[i + 1]];
+                    })
+                    .filter((v) => !!v)
+                    .map(([a, b]) => !b ? a : this.concat(a, b));
+
+                if (result.length === 1) return result;
+                this.proofs.push(result);
+                return this.getRoot(result);
+            }
+
+            findRoot(pi) {
+                const selected = this.proofs.map((v, i, f) => {
+                    if (pi % 2 === 0) {
+                        return {
+                            data: v[pi],
+                            left: true
+                        }
+                    } else {
+                        return {
+                            data: i > 0 ? v[pi - 1] : v[pi],
+                            left: false
+                        }
+                    }
+
+
+                })
+
+                //console.warn(selected)
+                //console.warn("---")
+
+                return selected;
+            }
+
+            getProof(i) {
+                const root = this.getRoot(this.leaves);
+
+                const result = this.findRoot(i);
+
+                return result;
+            }
+        }
+        function sha256(data) {
+            return CryptoJS.SHA256(data).toString();
+        }
+
+        function concatHash(left, right) {
+            if (!left) throw new Error("The concat function expects two hash arguments, the first was not received.");
+            if (!right) throw new Error("The concat function expects two hash arguments, the second was not received.");
+            return sha256(Buffer.concat([left, right]));
+        }
+
+        const leaves = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        const root = 'eb100814abc896ab18bcf6c37b6550eeadeae0c312532286a4cf4be132ace526';
+        const hashTree = new MerkleTree(leaves.map(sha256), concatHash);
+        const lettersTree = new MerkleTree(leaves, concatLetters);
+
+        leaves.forEach((leaf, i) => {
+            console.log(leaf, i);
+        });
+    </script>
+</body>
+
+</html>
